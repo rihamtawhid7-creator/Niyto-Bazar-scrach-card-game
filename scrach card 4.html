@@ -1,0 +1,178 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Niyto Bazar – Shareable Scratch Game</title>
+<style>
+body { font-family: Arial, sans-serif; text-align: center; background: linear-gradient(135deg,#f8b500,#fceabb); padding:20px; }
+h1 { color:#ff6600; font-size:36px; margin-bottom:10px; }
+.box { width:320px; margin:20px auto; background:white; border-radius:20px; padding:20px; box-shadow:0 15px 35px rgba(0,0,0,0.2); perspective:1000px; }
+button { padding:12px 25px; font-size:18px; font-weight:bold; border:none; border-radius:12px; cursor:pointer; margin:10px; transition:0.3s; }
+button:hover { opacity:0.85; }
+#cover { width:100%; height:200px; border-radius:15px; cursor: url('https://cdn-icons-png.flaticon.com/512/138/138292.png') 20 20, pointer; box-shadow: inset 0 0 15px rgba(0,0,0,0.3); transition: transform 0.5s; }
+#cover:hover { transform: rotateY(10deg) rotateX(5deg); }
+#prize { font-size:24px; font-weight:bold; margin-top:15px; color:#28a745; display:none; }
+#code { font-size:20px; font-weight:bold; color:#ff6600; margin-top:5px; display:none; }
+#takeBtn,#shareBtn,#copyBtn,#fbBtn { display:none; margin-top:10px; padding:12px 25px; font-size:16px; border:none; border-radius:12px; cursor:pointer; }
+#takeBtn { background:#28a745; color:white; }
+#shareBtn { background:#25D366; color:white; }
+#copyBtn { background:#6c757d; color:white; }
+#fbBtn { background:#1877f2; color:white; }
+#confettiCanvas { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; }
+#qrCode { margin-top:15px; }
+</style>
+</head>
+<body>
+
+<h1>Niyto Bazar</h1>
+
+<!-- Mini Game -->
+<div id="gameBox" class="box">
+    <p>Click the button to collect a coin!</p>
+    <button onclick="playGame()">Play Game</button>
+    <p id="coinMsg" style="font-size:20px;font-weight:bold;color:#28a745;"></p>
+</div>
+
+<!-- Scratch Card -->
+<div id="scratchArea" class="box" style="display:none;">
+    <h3>🪙 You Collected 1 Coin -- Scratch Now!</h3>
+    <canvas id="cover" width="300" height="200"></canvas>
+    <div id="prize"></div>
+    <div id="code"></div>
+    <button id="takeBtn">Take Gift</button>
+    <button id="shareBtn">Share WhatsApp</button>
+    <button id="copyBtn">Copy Link</button>
+    <button id="fbBtn">Share Facebook</button>
+    <div id="qrCode"></div>
+</div>
+
+<!-- Confetti Canvas -->
+<canvas id="confettiCanvas"></canvas>
+
+<!-- QRCode.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<script>
+// Mini Game
+let coin=0;
+function playGame(){
+    coin=1;
+    document.getElementById("coinMsg").innerHTML="✔ You collected 1 coin!";
+    setTimeout(()=>{
+        document.getElementById("gameBox").style.display="none";
+        document.getElementById("scratchArea").style.display="block";
+        showButtons();
+    },800);
+}
+
+// Scratch Card Prize
+const gifts=["5% Discount","10% Discount","15% Discount","20% Discount","25% Discount","30% Discount","🎁 Free T-Shirt!"];
+const selectedGift=gifts[Math.floor(Math.random()*gifts.length)];
+document.getElementById("prize").innerHTML=selectedGift;
+
+// Random Code
+const randomCode=Math.random().toString(36).substring(2,7);
+document.getElementById("code").innerHTML="Code: "+randomCode;
+
+// Scratch Canvas
+let canvas=document.getElementById("cover");
+let ctx=canvas.getContext("2d");
+ctx.fillStyle="#C0C0C0";
+ctx.fillRect(0,0,canvas.width,canvas.height);
+let isDrawing=false;
+canvas.addEventListener("mousedown",()=>isDrawing=true);
+canvas.addEventListener("mouseup",()=>isDrawing=false);
+canvas.addEventListener("mousemove",scratch);
+canvas.addEventListener("touchstart",()=>isDrawing=true);
+canvas.addEventListener("touchend",()=>isDrawing=false);
+canvas.addEventListener("touchmove",scratch);
+
+function scratch(e){
+    if(!isDrawing) return;
+    let rect=canvas.getBoundingClientRect();
+    let x=(e.clientX||e.touches[0].clientX)-rect.left;
+    let y=(e.clientY||e.touches[0].clientY)-rect.top;
+
+    ctx.globalCompositeOperation="destination-out";
+    ctx.beginPath();
+    ctx.arc(x,y,20,0,Math.PI*2);
+    ctx.fill();
+
+    document.getElementById("prize").style.display="block";
+    document.getElementById("code").style.display="block";
+    launchConfetti();
+}
+
+// Show Buttons
+function showButtons(){
+    document.getElementById("takeBtn").style.display="inline-block";
+    document.getElementById("shareBtn").style.display="inline-block";
+    document.getElementById("copyBtn").style.display="inline-block";
+    document.getElementById("fbBtn").style.display="inline-block";
+
+    // QR Code
+    new QRCode(document.getElementById("qrCode"), {
+        text: window.location.href,
+        width:128,
+        height:128
+    });
+}
+
+// Buttons
+document.getElementById("takeBtn").onclick=function(){
+    alert("✔ Your gift is saved! 🎁\nYour code: "+randomCode);
+}
+
+document.getElementById("shareBtn").onclick=function(){
+    const url=window.location.href;
+    const text=`I just won "${selectedGift}" at Niyto Bazar! My code: ${randomCode}\nPlay here: ${url}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`,'_blank');
+}
+
+document.getElementById("copyBtn").onclick=function(){
+    navigator.clipboard.writeText(window.location.href);
+    alert("Link copied! Share with your friends.");
+}
+
+document.getElementById("fbBtn").onclick=function(){
+    const url=encodeURIComponent(window.location.href);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`,'_blank');
+}
+
+// Confetti Effect
+const confettiCanvas=document.getElementById("confettiCanvas");
+const confCtx=confettiCanvas.getContext("2d");
+confettiCanvas.width=window.innerWidth;
+confettiCanvas.height=window.innerHeight;
+let confettis=[];
+function launchConfetti(){
+    for(let i=0;i<100;i++){
+        confettis.push({
+            x: Math.random()*window.innerWidth,
+            y: Math.random()*window.innerHeight,
+            r: Math.random()*6+4,
+            dx: (Math.random()-0.5)*4,
+            dy: Math.random()*-5,
+            color: `hsl(${Math.random()*360},100%,50%)`
+        });
+    }
+}
+function drawConfetti(){
+    confCtx.clearRect(0,0,window.innerWidth,window.innerHeight);
+    confettis.forEach((c,i)=>{
+        confCtx.fillStyle=c.color;
+        confCtx.beginPath();
+        confCtx.arc(c.x,c.y,c.r,0,Math.PI*2);
+        confCtx.fill();
+        c.x+=c.dx;
+        c.y+=c.dy+0.5;
+        c.dy+=0.05;
+        if(c.y>window.innerHeight) confettis.splice(i,1);
+    });
+    requestAnimationFrame(drawConfetti);
+}
+drawConfetti();
+</script>
+
+</body>
+</html>
